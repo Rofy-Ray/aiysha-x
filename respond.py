@@ -150,7 +150,7 @@ class AiyshaBot:
     #     self.twitter_api.create_tweet(text=response_text)
     #     logging.info("Tweeted successfully")
         
-def aiysha_bot_function():
+def aiysha_bot():
     logging.info(f"Job executed at {datetime.utcnow().isoformat()}")
     bot = AiyshaBot()
     bot.execute_replies()
