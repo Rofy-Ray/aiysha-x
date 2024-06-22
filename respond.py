@@ -8,6 +8,7 @@ import time
 import os
 import logging
 from dotenv import load_dotenv
+import functions_framework
 
 load_dotenv()
 
@@ -149,11 +150,20 @@ class AiyshaBot:
     #     response_text = get_model_response("what is a funny and interesting beauty fact?")
     #     self.twitter_api.create_tweet(text=response_text)
     #     logging.info("Tweeted successfully")
-        
-def aiysha_bot():
-    logging.info(f"Job executed at {datetime.utcnow().isoformat()}")
-    bot = AiyshaBot()
-    bot.execute_replies()
+
+# def aiysha_bot():
+#     logging.info(f"Job executed at {datetime.utcnow().isoformat()}")
+#     bot = AiyshaBot()
+#     bot.execute_replies()
+    
+# @functions_framework.http
+# def aiysha_bot(request):
+#     """HTTP Cloud Function."""
+#     logging.info(f"Job executed at {datetime.utcnow().isoformat()}")
+#     bot = AiyshaBot()
+#     bot.execute_replies()
+#     return "Bot executed successfully!"
+    
 
 # def job():
 #     logging.info(f"Job executed at {datetime.utcnow().isoformat()}")

@@ -3,3 +3,4 @@ google-cloud-functions
 google-cloud-bigquery
 google-cloud-aiplatform
 python-dotenv
+functions-framework
