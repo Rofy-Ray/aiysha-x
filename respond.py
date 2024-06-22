@@ -150,19 +150,14 @@ class AiyshaBot:
     #     response_text = get_model_response("what is a funny and interesting beauty fact?")
     #     self.twitter_api.create_tweet(text=response_text)
     #     logging.info("Tweeted successfully")
-
-# def aiysha_bot():
-#     logging.info(f"Job executed at {datetime.utcnow().isoformat()}")
-#     bot = AiyshaBot()
-#     bot.execute_replies()
     
-# @functions_framework.http
-# def aiysha_bot(request):
-#     """HTTP Cloud Function."""
-#     logging.info(f"Job executed at {datetime.utcnow().isoformat()}")
-#     bot = AiyshaBot()
-#     bot.execute_replies()
-#     return "Bot executed successfully!"
+@functions_framework.http
+def aiysha_bot(request):
+    logging.info(f"Job executed at {datetime.utcnow().isoformat()}")
+    bot = AiyshaBot()
+    bot.execute_replies()
+    logging.info("Aiysha executed successfully!")
+    return "Aiysha X bot executed successfully!"
     
 
 # def job():
@@ -173,8 +168,7 @@ class AiyshaBot:
     
 
 # if __name__ == "__main__":
-#     # schedule.every(5).minutes.do(job)
-#     schedule.every(15).minutes.do(job)
+#     schedule.every(5).minutes.do(job)
 #     while True:
 #         if schedule.run_pending():
 #             logging.info("Task executed successfully")
