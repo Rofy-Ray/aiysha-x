@@ -43,6 +43,9 @@ class AiyshaBot:
         self.mentions_found = 0
         self.mentions_replied = 0
         self.mentions_replied_errors = 0
+        
+        self.retry_delay = 60 
+        self.max_retries = 5
     
     def get_me_id(self):
         me = self.twitter_api.get_me()
@@ -66,19 +69,23 @@ class AiyshaBot:
     
     def get_mentions(self):
         now = datetime.utcnow()
-        start_time = now - timedelta(minutes=30)
+        start_time = now - timedelta(minutes=20)
         start_time_str = start_time.strftime("%Y-%m-%dT%H:%M:%SZ")
 
         mentions = []
         max_results = 100
         next_token = None
         while True:
-            response = self.twitter_api.get_users_mentions(id=self.twitter_me_id,
-                                                        start_time=start_time_str,
-                                                        expansions=['referenced_tweets.id'],
-                                                        tweet_fields=['created_at', 'conversation_id'],
-                                                        max_results=max_results,
-                                                        pagination_token=next_token)
+            try:
+                response = self.twitter_api.get_users_mentions(id=self.twitter_me_id,
+                                                            start_time=start_time_str,
+                                                            expansions=['referenced_tweets.id'],
+                                                            tweet_fields=['created_at', 'conversation_id'],
+                                                            max_results=max_results,
+                                                            pagination_token=next_token)
+            except tweepy.RateLimitError as e:
+                logging.warning(f"Rate limit exceeded: {e}")
+                self.retry_get_mentions()
             if response.data:
                 mentions.extend(response.data)
             next_token = response.meta.get('next_token')
@@ -86,6 +93,26 @@ class AiyshaBot:
                 break
             
         return mentions
+    
+    def retry_get_mentions(self):
+        retries = 0
+        while retries < self.max_retries:
+            try:
+                response = self.twitter_api.get_users_mentions(id=self.twitter_me_id,
+                                                            start_time=start_time_str,
+                                                            expansions=['referenced_tweets.id'],
+                                                            tweet_fields=['created_at', 'conversation_id'],
+                                                            max_results=max_results,
+                                                            pagination_token=next_token)
+                break
+            except tweepy.RateLimitError as e:
+                logging.warning(f"Rate limit exceeded (retry {retries+1}): {e}")
+                time.sleep(self.retry_delay)
+                retries += 1
+        if retries == self.max_retries:
+            logging.error("Max retries reached. Skipping.")
+            return []
+        return response
     
     def respond_to_mention(self, mention, mentioned_conversation_tweet):
         response_text = get_model_response(mentioned_conversation_tweet.text)
@@ -95,10 +122,10 @@ class AiyshaBot:
         try:
             response_tweet = self.twitter_api.create_tweet(text=response_text, in_reply_to_tweet_id=mention.id)
             self.mentions_replied += 1
-        except Exception as e:
-            logging.info(e)
+        except tweepy.RateLimitError as e:
+            logging.warning(f"Rate limit exceeded: {e}")
             self.mentions_replied_errors += 1
-            return
+            self.retry_create_tweet(mention, mentioned_conversation_tweet)
         
         table = self.bigquery_client.get_table(self.bigquery_table_ref)
         table_schema = table.schema
@@ -115,6 +142,21 @@ class AiyshaBot:
         self.bigquery_client.insert_rows(self.bigquery_table_ref, row_to_insert, table_schema)
         
         logging.info("Table successfully updated")
+        
+    def retry_create_tweet(self, mention, mentioned_conversation_tweet):
+        retries = 0
+        while retries < self.max_retries:
+            try:
+                response_tweet = self.twitter_api.create_tweet(text=response_text, in_reply_to_tweet_id=mention.id)
+                self.mentions_replied += 1
+                break
+            except tweepy.RateLimitError as e:
+                logging.warning(f"Rate limit exceeded (retry {retries+1}): {e}")
+                time.sleep(self.retry_delay)
+                retries += 1
+        if retries == self.max_retries:
+            logging.error("Max retries reached. Skipping.")
+            return
     
     def check_already_responded(self, mention):
         query = f"""
