@@ -1,5 +1,4 @@
 import tweepy
-from tweepy.errors import RateLimitError
 from google.cloud import bigquery, functions
 from google.cloud.bigquery import QueryJobConfig, ScalarQueryParameter
 from datetime import datetime, timedelta
@@ -84,7 +83,7 @@ class AiyshaBot:
                                                             tweet_fields=['created_at', 'conversation_id'],
                                                             max_results=max_results,
                                                             pagination_token=next_token)
-            except RateLimitError as e:
+            except tweepy.RateLimitError as e:
                 logging.warning(f"Rate limit exceeded: {e}")
                 self.retry_get_mentions()
             if response.data:
@@ -106,7 +105,7 @@ class AiyshaBot:
                                                             max_results=max_results,
                                                             pagination_token=next_token)
                 break
-            except RateLimitError as e:
+            except tweepy.RateLimitError as e:
                 logging.warning(f"Rate limit exceeded (retry {retries+1}): {e}")
                 time.sleep(self.retry_delay)
                 retries += 1
@@ -123,7 +122,7 @@ class AiyshaBot:
         try:
             response_tweet = self.twitter_api.create_tweet(text=response_text, in_reply_to_tweet_id=mention.id)
             self.mentions_replied += 1
-        except RateLimitError as e:
+        except tweepy.RateLimitError as e:
             logging.warning(f"Rate limit exceeded: {e}")
             self.mentions_replied_errors += 1
             self.retry_create_tweet(mention, mentioned_conversation_tweet)
@@ -151,7 +150,7 @@ class AiyshaBot:
                 response_tweet = self.twitter_api.create_tweet(text=response_text, in_reply_to_tweet_id=mention.id)
                 self.mentions_replied += 1
                 break
-            except RateLimitError as e:
+            except tweepy.RateLimitError as e:
                 logging.warning(f"Rate limit exceeded (retry {retries+1}): {e}")
                 time.sleep(self.retry_delay)
                 retries += 1
